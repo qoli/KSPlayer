@@ -9,17 +9,18 @@ import Foundation
 import SwiftUI
 
 #if canImport(UIKit)
-import UIKit
+    import UIKit
 #else
-import AppKit
+    import AppKit
 
-public typealias UIViewRepresentable = NSViewRepresentable
+    public typealias UIViewRepresentable = NSViewRepresentable
 #endif
 
 public struct KSVideoPlayer {
-    public private(set) var coordinator: Coordinator
+    @ObservedObject public private(set) var coordinator: Coordinator
     public let url: URL
     public let options: KSOptions
+
     public init(coordinator: Coordinator, url: URL, options: KSOptions) {
         self.coordinator = coordinator
         self.url = url
@@ -33,34 +34,47 @@ extension KSVideoPlayer: UIViewRepresentable {
     }
 
     #if canImport(UIKit)
-    public typealias UIViewType = UIView
-    public func makeUIView(context: Context) -> UIViewType {
-        context.coordinator.makeView(url: url, options: options)
-    }
+        public typealias UIViewType = UIView
+        public func makeUIView(context: Context) -> UIViewType {
+            let view = context.coordinator.makeView(url: url, options: options)
+            let swipeDown = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeGestureAction(_:)))
+            swipeDown.direction = .down
+            view.addGestureRecognizer(swipeDown)
+            let swipeLeft = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeGestureAction(_:)))
+            swipeLeft.direction = .left
+            view.addGestureRecognizer(swipeLeft)
+            let swipeRight = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeGestureAction(_:)))
+            swipeRight.direction = .right
+            view.addGestureRecognizer(swipeRight)
+            let swipeUp = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeGestureAction(_:)))
+            swipeUp.direction = .up
+            view.addGestureRecognizer(swipeUp)
+            return view
+        }
 
-    public func updateUIView(_ view: UIViewType, context: Context) {
-        updateView(view, context: context)
-    }
+        public func updateUIView(_ view: UIViewType, context: Context) {
+            updateView(view, context: context)
+        }
 
-    // iOS tvOS真机先调用onDisappear在调用dismantleUIView，但是模拟器就反过来了。
-    public static func dismantleUIView(_: UIViewType, coordinator: Coordinator) {
-        coordinator.resetPlayer()
-    }
+        // iOS tvOS真机先调用onDisappear在调用dismantleUIView，但是模拟器就反过来了。
+        public static func dismantleUIView(_: UIViewType, coordinator: Coordinator) {
+            coordinator.resetPlayer()
+        }
     #else
-    public typealias NSViewType = UIView
-    public func makeNSView(context: Context) -> NSViewType {
-        context.coordinator.makeView(url: url, options: options)
-    }
+        public typealias NSViewType = UIView
+        public func makeNSView(context: Context) -> NSViewType {
+            context.coordinator.makeView(url: url, options: options)
+        }
 
-    public func updateNSView(_ view: NSViewType, context: Context) {
-        updateView(view, context: context)
-    }
+        public func updateNSView(_ view: NSViewType, context: Context) {
+            updateView(view, context: context)
+        }
 
-    // macOS先调用onDisappear在调用dismantleNSView
-    public static func dismantleNSView(_ view: NSViewType, coordinator: Coordinator) {
-        coordinator.resetPlayer()
-        view.window?.aspectRatio = CGSize(width: 16, height: 9)
-    }
+        // macOS先调用onDisappear在调用dismantleNSView
+        public static func dismantleNSView(_ view: NSViewType, coordinator: Coordinator) {
+            coordinator.resetPlayer()
+            view.window?.aspectRatio = CGSize(width: 16, height: 9)
+        }
     #endif
 
     @MainActor
@@ -109,7 +123,28 @@ extension KSVideoPlayer: UIViewRepresentable {
         public var isMaskShow = true {
             didSet {
                 if isMaskShow != oldValue {
-                    mask(show: isMaskShow)
+                    if isMaskShow {
+                        delayItem?.cancel()
+                        // 播放的时候才自动隐藏
+                        guard state == .bufferFinished else { return }
+                        delayItem = DispatchWorkItem { [weak self] in
+                            self?.isMaskShow = false
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + KSOptions.animateDelayTimeInterval,
+                                                      execute: delayItem!)
+                    }
+                    #if os(macOS)
+                        isMaskShow ? NSCursor.unhide() : NSCursor.setHiddenUntilMouseMoves(true)
+                        if let window = playerLayer?.player.view?.window {
+                            if !window.styleMask.contains(.fullScreen) {
+                                window.standardWindowButton(.closeButton)?.superview?.superview?.isHidden = !isMaskShow
+                                //                    window.standardWindowButton(.zoomButton)?.isHidden = !isMaskShow
+                                //                    window.standardWindowButton(.closeButton)?.isHidden = !isMaskShow
+                                //                    window.standardWindowButton(.miniaturizeButton)?.isHidden = !isMaskShow
+                                //                    window.titleVisibility = isMaskShow ? .visible : .hidden
+                            }
+                        }
+                    #endif
                 }
             }
         }
@@ -130,10 +165,10 @@ extension KSVideoPlayer: UIViewRepresentable {
         public var onStateChanged: ((KSPlayerLayer, KSPlayerState) -> Void)?
         public var onBufferChanged: ((Int, TimeInterval) -> Void)?
         #if canImport(UIKit)
-        fileprivate var onSwipe: ((UISwipeGestureRecognizer.Direction) -> Void)?
-        @objc fileprivate func swipeGestureAction(_ recognizer: UISwipeGestureRecognizer) {
-            onSwipe?(recognizer.direction)
-        }
+            fileprivate var onSwipe: ((UISwipeGestureRecognizer.Direction) -> Void)?
+            @objc fileprivate func swipeGestureAction(_ recognizer: UISwipeGestureRecognizer) {
+                onSwipe?(recognizer.direction)
+            }
         #endif
 
         public init() {}
@@ -165,7 +200,7 @@ extension KSVideoPlayer: UIViewRepresentable {
             onFinish = nil
             onBufferChanged = nil
             #if canImport(UIKit)
-            onSwipe = nil
+                onSwipe = nil
             #endif
             playerLayer = nil
             delayHide?.cancel()
@@ -311,10 +346,10 @@ public extension KSVideoPlayer {
     }
 
     #if canImport(UIKit)
-    func onSwipe(_ handler: @escaping (UISwipeGestureRecognizer.Direction) -> Void) -> Self {
-        coordinator.onSwipe = handler
-        return self
-    }
+        func onSwipe(_ handler: @escaping (UISwipeGestureRecognizer.Direction) -> Void) -> Self {
+            coordinator.onSwipe = handler
+            return self
+        }
     #endif
 }
 
