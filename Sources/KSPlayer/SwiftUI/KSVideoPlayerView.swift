@@ -34,7 +34,7 @@ public struct KSVideoPlayerView: View {
     public var url: URL {
         didSet {
             #if os(macOS)
-            NSDocumentController.shared.noteNewRecentDocumentURL(url)
+                NSDocumentController.shared.noteNewRecentDocumentURL(url)
             #endif
         }
     }
@@ -52,7 +52,7 @@ public struct KSVideoPlayerView: View {
         _playerCoordinator = .init(wrappedValue: coordinator)
         _title = title
         #if os(macOS)
-        NSDocumentController.shared.noteNewRecentDocumentURL(url.wrappedValue)
+            NSDocumentController.shared.noteNewRecentDocumentURL(url)
         #endif
         self.options = options
         self.subtitleDataSouce = subtitleDataSouce
@@ -74,10 +74,10 @@ public struct KSVideoPlayerView: View {
                     .ignoresSafeArea()
                 #endif
                 #if os(tvOS)
-                if isDropdownShow {
-                    VideoSettingView(config: playerCoordinator, subtitleModel: playerCoordinator.subtitleModel, subtitleTitle: title)
-                        .focused($focusableField, equals: .info)
-                }
+                    if isDropdownShow {
+                        VideoSettingView(config: playerCoordinator, subtitleModel: playerCoordinator.subtitleModel, subtitleTitle: title)
+                            .focused($focusableField, equals: .info)
+                    }
                 #endif
             }
         }
@@ -144,11 +144,11 @@ public struct KSVideoPlayerView: View {
             .navigationBarTitleDisplayMode(.inline)
         #endif
         #if !os(iOS)
-            .focusable(!playerCoordinator.isMaskShow)
+        .focusable(!playerCoordinator.isMaskShow)
         .focused($focusableField, equals: .play)
         #endif
         #if !os(xrOS)
-            .onKeyPressLeftArrow {
+        .onKeyPressLeftArrow {
             playerCoordinator.skip(interval: -15)
         }
         .onKeyPressRightArrow {
@@ -163,13 +163,13 @@ public struct KSVideoPlayerView: View {
         }
         #endif
         #if os(macOS)
-            .onTapGesture(count: 2) {
-                guard let view = playerCoordinator.playerLayer?.player.view else {
-                    return
-                }
-                view.window?.toggleFullScreen(nil)
-                view.needsLayout = true
-                view.layoutSubtreeIfNeeded()
+        .onTapGesture(count: 2) {
+            guard let view = playerCoordinator.playerLayer?.player.view else {
+                return
+            }
+            view.window?.toggleFullScreen(nil)
+            view.needsLayout = true
+            view.layoutSubtreeIfNeeded()
         }
         .onExitCommand {
             playerCoordinator.playerLayer?.player.view?.exitFullScreenMode()
@@ -189,19 +189,20 @@ public struct KSVideoPlayerView: View {
             }
         }
         #else
-        .onTapGesture {
-                playerCoordinator.isMaskShow.toggle()
-            }
+                .onTapGesture {
+                    playerCoordinator.isMaskShow.toggle()
+                }
         #endif
         #if os(tvOS)
-            .onMoveCommand { direction in
+        .onMoveCommand { direction in
             switch direction {
             case .left:
                 playerCoordinator.skip(interval: -15)
             case .right:
                 playerCoordinator.skip(interval: 15)
             case .up:
-                playerCoordinator.mask(show: true, autoHide: false)
+                break
+//                playerCoordinator.isMaskShow.toggle()
             case .down:
                 focusableField = .info
             @unknown default:
@@ -209,17 +210,17 @@ public struct KSVideoPlayerView: View {
             }
         }
         #else
-        .onHover { _ in
-                playerCoordinator.isMaskShow = true
-            }
-            .onDrop(of: ["public.file-url"], isTargeted: nil) { providers -> Bool in
-                providers.first?.loadDataRepresentation(forTypeIdentifier: "public.file-url") { data, _ in
-                    if let data, let path = NSString(data: data, encoding: 4), let url = URL(string: path as String) {
-                        openURL(url)
-                    }
+                .onHover { _ in
+                    playerCoordinator.isMaskShow = true
                 }
-                return true
-            }
+                .onDrop(of: ["public.file-url"], isTargeted: nil) { providers -> Bool in
+                    providers.first?.loadDataRepresentation(forTypeIdentifier: "public.file-url") { data, _ in
+                        if let data, let path = NSString(data: data, encoding: 4), let url = URL(string: path as String) {
+                            openURL(url)
+                        }
+                    }
+                    return true
+                }
         #endif
     }
 
@@ -227,16 +228,16 @@ public struct KSVideoPlayerView: View {
         VStack {
             VideoControllerView(config: playerCoordinator, subtitleModel: playerCoordinator.subtitleModel, title: $title, volumeSliderSize: playerWidth / 4)
             #if !os(xrOS)
-            // 设置opacity为0，还是会去更新View。所以只能这样了
-            if playerCoordinator.isMaskShow {
-                VideoTimeShowView(config: playerCoordinator, model: playerCoordinator.timemodel)
-                    .onAppear {
-                        focusableField = .controller
-                    }
-                    .onDisappear {
-                        focusableField = .play
-                    }
-            }
+                // 设置opacity为0，还是会去更新View。所以只能这样了
+                if playerCoordinator.isMaskShow {
+                    VideoTimeShowView(config: playerCoordinator, model: playerCoordinator.timemodel)
+                        .onAppear {
+                            focusableField = .controller
+                        }
+                        .onDisappear {
+                            focusableField = .play
+                        }
+                }
             #endif
         }
         #if os(xrOS)
@@ -365,82 +366,77 @@ struct VideoControllerView: View {
     public var body: some View {
         VStack {
             #if os(tvOS)
-            Spacer()
-            HStack {
-                Text(title)
-                    .lineLimit(2)
-                    .layoutPriority(3)
-                ProgressView()
-                    .opacity(config.state == .buffering ? 1 : 0)
                 Spacer()
-                    .layoutPriority(2)
                 HStack {
-                    Button {
-                        if config.state.isPlaying {
-                            config.playerLayer?.pause()
-                        } else {
-                            config.playerLayer?.play()
+                    Text(title)
+                        .lineLimit(2)
+                        .layoutPriority(3)
+                    ProgressView()
+                        .opacity(config.state == .buffering ? 1 : 0)
+                    Spacer()
+                        .layoutPriority(2)
+                    HStack {
+                        Button {
+                            if config.state.isPlaying {
+                                config.playerLayer?.pause()
+                            } else {
+                                config.playerLayer?.play()
+                            }
+                        } label: {
+                            Image(systemName: config.state == .error ? "play.slash.fill" : (config.state.isPlaying ? "pause.circle.fill" : "play.circle.fill"))
                         }
-                    } label: {
-                        Image(systemName: config.state == .error ? "play.slash.fill" : (config.state.isPlaying ? "pause.circle.fill" : "play.circle.fill"))
+                        if let audioTracks = config.playerLayer?.player.tracks(mediaType: .audio), !audioTracks.isEmpty {
+                            audioButton(audioTracks: audioTracks)
+                        }
+                        // muteButton
+                        contentModeButton
+                        subtitleButton
+                        playbackRateButton
+                        // pipButton
+                        infoButton
                     }
-                    .frame(width: 56)
+                    .font(.caption)
+                }
+            #else
+                HStack {
+                    #if !os(xrOS)
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "x.circle.fill")
+                        }
+                        #if !os(tvOS)
+                            if config.playerLayer?.player.allowsExternalPlayback == true {
+                                AirPlayView().fixedSize()
+                            }
+                        #endif
+                    #endif
+                    Spacer()
                     if let audioTracks = config.playerLayer?.player.tracks(mediaType: .audio), !audioTracks.isEmpty {
                         audioButton(audioTracks: audioTracks)
+                        #if os(xrOS)
+                            .aspectRatio(1, contentMode: .fit)
+                            .glassBackgroundEffect()
+                        #endif
                     }
                     muteButton
-                        .frame(width: 56)
-                    contentModeButton
-                        .frame(width: 56)
-                    subtitleButton
-                    playbackRateButton
-                    pipButton
-                        .frame(width: 56)
-                    infoButton
-                        .frame(width: 56)
-                }
-                .font(.caption)
-            }
-            #else
-            HStack {
-                #if !os(xrOS)
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "x.circle.fill")
-                }
-                #if !os(tvOS)
-                if config.playerLayer?.player.allowsExternalPlayback == true {
-                    AirPlayView().fixedSize()
-                }
-                #endif
-                #endif
-                Spacer()
-                if let audioTracks = config.playerLayer?.player.tracks(mediaType: .audio), !audioTracks.isEmpty {
-                    audioButton(audioTracks: audioTracks)
-                    #if os(xrOS)
-                        .aspectRatio(1, contentMode: .fit)
-                        .glassBackgroundEffect()
+                    #if !os(xrOS)
+                        contentModeButton
+                        subtitleButton
                     #endif
                 }
-                muteButton
-                #if !os(xrOS)
-                contentModeButton
-                subtitleButton
-                #endif
-            }
-            Spacer()
-            #if !os(xrOS)
-            KSVideoPlayerViewBuilder.playbackControlView(config: config)
-            Spacer()
-            HStack {
-                KSVideoPlayerViewBuilder.titleView(title: title, config: config)
                 Spacer()
-                playbackRateButton
-                pipButton
-                infoButton
-            }
-            #endif
+                #if !os(xrOS)
+                    KSVideoPlayerViewBuilder.playbackControlView(config: config)
+                    Spacer()
+                    HStack {
+                        KSVideoPlayerViewBuilder.titleView(title: title, config: config)
+                        Spacer()
+                        playbackRateButton
+                        pipButton
+                        infoButton
+                    }
+                #endif
             #endif
         }
         #if !os(tvOS)
@@ -454,20 +450,20 @@ struct VideoControllerView: View {
 
     private var muteButton: some View {
         #if os(xrOS)
-        HStack {
-            Slider(value: $config.playbackVolume, in: 0 ... 1)
-                .onChange(of: config.playbackVolume) { _, newValue in
-                    config.isMuted = newValue == 0
-                }
-                .frame(width: volumeSliderSize ?? 100)
-                .tint(.white.opacity(0.8))
-                .padding(.leading, 16)
-            KSVideoPlayerViewBuilder.muteButton(config: config)
-        }
-        .padding(16)
-        .glassBackgroundEffect()
+            HStack {
+                Slider(value: $config.playbackVolume, in: 0 ... 1)
+                    .onChange(of: config.playbackVolume) { _, newValue in
+                        config.isMuted = newValue == 0
+                    }
+                    .frame(width: volumeSliderSize ?? 100)
+                    .tint(.white.opacity(0.8))
+                    .padding(.leading, 16)
+                KSVideoPlayerViewBuilder.muteButton(config: config)
+            }
+            .padding(16)
+            .glassBackgroundEffect()
         #else
-        KSVideoPlayerViewBuilder.muteButton(config: config)
+            KSVideoPlayerViewBuilder.muteButton(config: config)
         #endif
     }
 
@@ -604,15 +600,15 @@ struct VideoSubtitleView: View {
 
     fileprivate static func imageView(_ image: UIImage) -> some View {
         #if enableFeatureLiveText && canImport(VisionKit) && !targetEnvironment(simulator)
-        if #available(macCatalyst 17.0, *) {
-            return LiveTextImage(uiImage: image)
-        } else {
+            if #available(macCatalyst 17.0, *) {
+                return LiveTextImage(uiImage: image)
+            } else {
+                return Image(uiImage: image)
+                    .resizable()
+            }
+        #else
             return Image(uiImage: image)
                 .resizable()
-        }
-        #else
-        return Image(uiImage: image)
-            .resizable()
         #endif
     }
 }
@@ -736,18 +732,18 @@ public struct PlatformView<Content: View>: View {
     private let content: () -> Content
     public var body: some View {
         #if os(tvOS)
-        ScrollView {
-            content()
-                .padding()
-        }
-        .pickerStyle(.navigationLink)
+            ScrollView {
+                content()
+                    .padding()
+            }
+            .pickerStyle(.navigationLink)
         #else
-        Form {
-            content()
-        }
-        #if os(macOS)
-        .padding()
-        #endif
+            Form {
+                content()
+            }
+            #if os(macOS)
+            .padding()
+            #endif
         #endif
     }
 
