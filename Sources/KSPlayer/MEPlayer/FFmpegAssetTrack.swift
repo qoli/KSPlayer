@@ -68,7 +68,7 @@ public class FFmpegAssetTrack: MediaPlayerTrack {
         return description
     }
 
-    convenience init?(stream: UnsafeMutablePointer<AVStream>) {
+    public convenience init?(stream: UnsafeMutablePointer<AVStream>) {
         let codecpar = stream.pointee.codecpar.pointee
         self.init(codecpar: codecpar)
         self.stream = stream
