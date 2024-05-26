@@ -9,7 +9,7 @@ import AVFoundation
 import CoreMedia
 import Libavcodec
 #if canImport(UIKit)
-import UIKit
+    import UIKit
 #endif
 
 // MARK: enum
@@ -115,7 +115,7 @@ public extension KSOptions {
             return CGColorSpace(name: CGColorSpace.sRGB)
         }
     }
-
+    
     static func colorSpace(colorPrimaries: CFString?) -> CGColorSpace? {
         switch colorPrimaries {
         case kCVImageBufferColorPrimaries_ITU_R_709_2:
@@ -138,7 +138,7 @@ public extension KSOptions {
             return CGColorSpace(name: CGColorSpace.sRGB)
         }
     }
-
+    
     static func pixelFormat(planeCount: Int, bitDepth: Int32) -> [MTLPixelFormat] {
         if planeCount == 3 {
             if bitDepth > 8 {
@@ -157,7 +157,20 @@ public extension KSOptions {
         }
     }
 
+    /// colorPixelFormat
+    /// 根據 Apple 的文檔 bgr10a2Unorm 屬於 macOS 專用，不理解此為何要求在全局使用。
+    /// https://developer.apple.com/documentation/quartzcore/cametallayer/1478155-pixelformat
+    /// - Parameter bitDepth: bitDepth
+    /// - Returns: MTLPixelFormat
     static func colorPixelFormat(bitDepth: Int32) -> MTLPixelFormat {
+        #if os(tvOS)
+            if bitDepth == 10 {
+                return .bgr10_xr
+            } else {
+                return .bgra8Unorm
+            }
+        #endif
+
         if bitDepth == 10 {
             return .bgr10a2Unorm
         } else {
