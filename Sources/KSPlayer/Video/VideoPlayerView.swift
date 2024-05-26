@@ -7,9 +7,9 @@
 //
 import AVKit
 #if canImport(UIKit)
-import UIKit
+    import UIKit
 #else
-import AppKit
+    import AppKit
 #endif
 import Combine
 import MediaPlayer
@@ -26,7 +26,7 @@ public protocol LoadingIndector {
 }
 
 #if canImport(UIKit)
-extension UIActivityIndicatorView: LoadingIndector {}
+    extension UIActivityIndicatorView: LoadingIndector {}
 #endif
 // swiftlint:disable type_body_length file_length
 open class VideoPlayerView: PlayerView {
@@ -86,6 +86,8 @@ open class VideoPlayerView: PlayerView {
     public var isLock: Bool { lockButton.isSelected }
     open var isMaskShow = true {
         didSet {
+            return
+
             let alpha: CGFloat = isMaskShow && !isLock ? 1.0 : 0.0
             UIView.animate(withDuration: 0.3) {
                 if self.isPlayed {
@@ -108,9 +110,9 @@ open class VideoPlayerView: PlayerView {
             oldValue?.player.view?.removeFromSuperview()
             if let view = playerLayer?.player.view {
                 #if canImport(UIKit)
-                insertSubview(view, belowSubview: contentOverlayView)
+                    insertSubview(view, belowSubview: contentOverlayView)
                 #else
-                addSubview(view, positioned: .below, relativeTo: contentOverlayView)
+                    addSubview(view, positioned: .below, relativeTo: contentOverlayView)
                 #endif
                 view.translatesAutoresizingMaskIntoConstraints = false
                 NSLayoutConstraint.activate([
@@ -125,7 +127,8 @@ open class VideoPlayerView: PlayerView {
 
     override public init(frame: CGRect) {
         super.init(frame: frame)
-        setupUIComponents()
+//        setupUIComponents()
+        miniUISetup()
         cancellable = playerLayer?.$isPipActive.assign(to: \.isSelected, on: toolBar.pipButton)
         toolBar.onFocusUpdate = { [weak self] _ in
             self?.autoFadeOutViewWithAnimation()
@@ -143,15 +146,15 @@ open class VideoPlayerView: PlayerView {
             }
         }
         #if os(tvOS)
-        if type == .srt {
-            changeSrt(button: button)
-        } else if type == .rate {
-            changePlaybackRate(button: button)
-        } else if type == .definition {
-            changeDefinitions(button: button)
-        } else if type == .audioSwitch || type == .videoSwitch {
-            changeAudioVideo(type, button: button)
-        }
+            if type == .srt {
+                changeSrt(button: button)
+            } else if type == .rate {
+                changePlaybackRate(button: button)
+            } else if type == .definition {
+                changeDefinitions(button: button)
+            } else if type == .audioSwitch || type == .videoSwitch {
+                changeAudioVideo(type, button: button)
+            }
         #elseif os(macOS)
 //        if let menu = button.menu, let event = NSApplication.shared.currentEvent {
 //            NSMenu.popUpContextMenu(menu, with: event, for: button)
@@ -165,9 +168,9 @@ open class VideoPlayerView: PlayerView {
         addSubview(contentOverlayView)
         addSubview(controllerView)
         #if os(macOS)
-        topMaskView.gradientLayer.colors = [UIColor.clear.cgColor, UIColor.black.withAlphaComponent(0.5).cgColor]
+            topMaskView.gradientLayer.colors = [UIColor.clear.cgColor, UIColor.black.withAlphaComponent(0.5).cgColor]
         #else
-        topMaskView.gradientLayer.colors = [UIColor.black.withAlphaComponent(0.5).cgColor, UIColor.clear.cgColor]
+            topMaskView.gradientLayer.colors = [UIColor.black.withAlphaComponent(0.5).cgColor, UIColor.clear.cgColor]
         #endif
         bottomMaskView.gradientLayer.colors = topMaskView.gradientLayer.colors
         topMaskView.isHidden = KSOptions.topBarShowInCase != .always
@@ -215,6 +218,11 @@ open class VideoPlayerView: PlayerView {
         layoutIfNeeded()
     }
 
+    func miniUISetup() {
+        setupSrtControl()
+        layoutIfNeeded()
+    }
+
     /// Add Customize functions here
     open func customizeUIComponents() {
         tapGesture.addTarget(self, action: #selector(tapGestureAction(_:)))
@@ -228,7 +236,7 @@ open class VideoPlayerView: PlayerView {
         tapGesture.require(toFail: doubleTapGesture)
         controllerView.addGestureRecognizer(doubleTapGesture)
         #if canImport(UIKit)
-        addRemoteControllerGestures()
+            addRemoteControllerGestures()
         #endif
     }
 
@@ -412,53 +420,53 @@ extension VideoPlayerView {
     @available(iOS 14.0, tvOS 15.0, *)
     func buildMenusForButtons() {
         #if !os(tvOS)
-        toolBar.definitionButton.setMenu(title: NSLocalizedString("video quality", comment: ""), current: resource?.definitions[currentDefinition], list: resource?.definitions ?? []) { value in
-            value.definition
-        } completition: { [weak self] value in
-            guard let self else { return }
-            if let value, let index = self.resource?.definitions.firstIndex(of: value) {
-                self.change(definitionIndex: index)
+            toolBar.definitionButton.setMenu(title: NSLocalizedString("video quality", comment: ""), current: resource?.definitions[currentDefinition], list: resource?.definitions ?? []) { value in
+                value.definition
+            } completition: { [weak self] value in
+                guard let self else { return }
+                if let value, let index = self.resource?.definitions.firstIndex(of: value) {
+                    self.change(definitionIndex: index)
+                }
             }
-        }
-        let videoTracks = playerLayer?.player.tracks(mediaType: .video) ?? []
-        toolBar.videoSwitchButton.setMenu(title: NSLocalizedString("switch video", comment: ""), current: videoTracks.first(where: { $0.isEnabled }), list: videoTracks) { value in
-            value.name + " \(value.naturalSize.width)x\(value.naturalSize.height)"
-        } completition: { [weak self] value in
-            guard let self else { return }
-            if let value {
-                self.playerLayer?.player.select(track: value)
+            let videoTracks = playerLayer?.player.tracks(mediaType: .video) ?? []
+            toolBar.videoSwitchButton.setMenu(title: NSLocalizedString("switch video", comment: ""), current: videoTracks.first(where: { $0.isEnabled }), list: videoTracks) { value in
+                value.name + " \(value.naturalSize.width)x\(value.naturalSize.height)"
+            } completition: { [weak self] value in
+                guard let self else { return }
+                if let value {
+                    self.playerLayer?.player.select(track: value)
+                }
             }
-        }
-        let audioTracks = playerLayer?.player.tracks(mediaType: .audio) ?? []
-        toolBar.audioSwitchButton.setMenu(title: NSLocalizedString("switch audio", comment: ""), current: audioTracks.first(where: { $0.isEnabled }), list: audioTracks) { value in
-            value.description
-        } completition: { [weak self] value in
-            guard let self else { return }
-            if let value {
-                self.playerLayer?.player.select(track: value)
+            let audioTracks = playerLayer?.player.tracks(mediaType: .audio) ?? []
+            toolBar.audioSwitchButton.setMenu(title: NSLocalizedString("switch audio", comment: ""), current: audioTracks.first(where: { $0.isEnabled }), list: audioTracks) { value in
+                value.description
+            } completition: { [weak self] value in
+                guard let self else { return }
+                if let value {
+                    self.playerLayer?.player.select(track: value)
+                }
             }
-        }
-        toolBar.playbackRateButton.setMenu(title: NSLocalizedString("speed", comment: ""), current: playerLayer?.player.playbackRate ?? 1, list: [0.75, 1.0, 1.25, 1.5, 2.0]) { value in
-            "\(value) x"
-        } completition: { [weak self] value in
-            guard let self else { return }
-            if let value {
-                self.playerLayer?.player.playbackRate = value
+            toolBar.playbackRateButton.setMenu(title: NSLocalizedString("speed", comment: ""), current: playerLayer?.player.playbackRate ?? 1, list: [0.75, 1.0, 1.25, 1.5, 2.0]) { value in
+                "\(value) x"
+            } completition: { [weak self] value in
+                guard let self else { return }
+                if let value {
+                    self.playerLayer?.player.playbackRate = value
+                }
             }
-        }
-        toolBar.srtButton.setMenu(title: NSLocalizedString("subtitle", comment: ""), current: srtControl.selectedSubtitleInfo, list: srtControl.subtitleInfos, addDisabled: true) { value in
-            value.name
-        } completition: { [weak self] value in
-            guard let self else { return }
-            self.srtControl.selectedSubtitleInfo = value
-        }
-        #if os(iOS)
-        toolBar.definitionButton.showsMenuAsPrimaryAction = true
-        toolBar.videoSwitchButton.showsMenuAsPrimaryAction = true
-        toolBar.audioSwitchButton.showsMenuAsPrimaryAction = true
-        toolBar.playbackRateButton.showsMenuAsPrimaryAction = true
-        toolBar.srtButton.showsMenuAsPrimaryAction = true
-        #endif
+            toolBar.srtButton.setMenu(title: NSLocalizedString("subtitle", comment: ""), current: srtControl.selectedSubtitleInfo, list: srtControl.subtitleInfos, addDisabled: true) { value in
+                value.name
+            } completition: { [weak self] value in
+                guard let self else { return }
+                self.srtControl.selectedSubtitleInfo = value
+            }
+            #if os(iOS)
+                toolBar.definitionButton.showsMenuAsPrimaryAction = true
+                toolBar.videoSwitchButton.showsMenuAsPrimaryAction = true
+                toolBar.audioSwitchButton.showsMenuAsPrimaryAction = true
+                toolBar.playbackRateButton.showsMenuAsPrimaryAction = true
+                toolBar.srtButton.showsMenuAsPrimaryAction = true
+            #endif
         #endif
     }
 }
@@ -674,12 +682,12 @@ extension VideoPlayerView {
     private func addConstraint() {
         if #available(macOS 11.0, *) {
             #if !targetEnvironment(macCatalyst)
-            toolBar.timeSlider.setThumbImage(UIImage(systemName: "circle.fill"), for: .normal)
-            #if os(macOS)
-            toolBar.timeSlider.setThumbImage(UIImage(systemName: "circle.fill"), for: .highlighted)
-            #else
-            toolBar.timeSlider.setThumbImage(UIImage(systemName: "circle.fill", withConfiguration: UIImage.SymbolConfiguration(scale: .large)), for: .highlighted)
-            #endif
+                toolBar.timeSlider.setThumbImage(UIImage(systemName: "circle.fill"), for: .normal)
+                #if os(macOS)
+                    toolBar.timeSlider.setThumbImage(UIImage(systemName: "circle.fill"), for: .highlighted)
+                #else
+                    toolBar.timeSlider.setThumbImage(UIImage(systemName: "circle.fill", withConfiguration: UIImage.SymbolConfiguration(scale: .large)), for: .highlighted)
+                #endif
             #endif
         }
         bottomMaskView.addSubview(toolBar.timeSlider)
@@ -735,139 +743,139 @@ extension VideoPlayerView {
 
     private func configureToolBarConstraints() {
         #if os(tvOS)
-        toolBar.spacing = 10
-        toolBar.addArrangedSubview(toolBar.playButton)
-        toolBar.addArrangedSubview(toolBar.timeLabel)
-        toolBar.addArrangedSubview(toolBar.playbackRateButton)
-        toolBar.addArrangedSubview(toolBar.definitionButton)
-        toolBar.addArrangedSubview(toolBar.audioSwitchButton)
-        toolBar.addArrangedSubview(toolBar.videoSwitchButton)
-        toolBar.addArrangedSubview(toolBar.srtButton)
-        toolBar.addArrangedSubview(toolBar.pipButton)
+            toolBar.spacing = 10
+            toolBar.addArrangedSubview(toolBar.playButton)
+            toolBar.addArrangedSubview(toolBar.timeLabel)
+            toolBar.addArrangedSubview(toolBar.playbackRateButton)
+            toolBar.addArrangedSubview(toolBar.definitionButton)
+            toolBar.addArrangedSubview(toolBar.audioSwitchButton)
+            toolBar.addArrangedSubview(toolBar.videoSwitchButton)
+            toolBar.addArrangedSubview(toolBar.srtButton)
+            toolBar.addArrangedSubview(toolBar.pipButton)
 
-        toolBar.setCustomSpacing(20, after: toolBar.timeLabel)
-        toolBar.setCustomSpacing(20, after: toolBar.playbackRateButton)
-        toolBar.setCustomSpacing(20, after: toolBar.definitionButton)
-        toolBar.setCustomSpacing(20, after: toolBar.srtButton)
+            toolBar.setCustomSpacing(20, after: toolBar.timeLabel)
+            toolBar.setCustomSpacing(20, after: toolBar.playbackRateButton)
+            toolBar.setCustomSpacing(20, after: toolBar.definitionButton)
+            toolBar.setCustomSpacing(20, after: toolBar.srtButton)
 
-        NSLayoutConstraint.activate([
-            toolBar.bottomAnchor.constraint(equalTo: bottomMaskView.safeBottomAnchor),
-            toolBar.leadingAnchor.constraint(equalTo: bottomMaskView.safeLeadingAnchor, constant: 10),
-            toolBar.trailingAnchor.constraint(equalTo: bottomMaskView.safeTrailingAnchor, constant: -15),
-            toolBar.timeSlider.bottomAnchor.constraint(equalTo: toolBar.topAnchor, constant: -8),
-            toolBar.timeSlider.leadingAnchor.constraint(equalTo: bottomMaskView.safeLeadingAnchor, constant: 15),
-            toolBar.timeSlider.trailingAnchor.constraint(equalTo: bottomMaskView.safeTrailingAnchor, constant: -15),
-            toolBar.timeSlider.heightAnchor.constraint(equalToConstant: 16),
-        ])
+            NSLayoutConstraint.activate([
+                toolBar.bottomAnchor.constraint(equalTo: bottomMaskView.safeBottomAnchor),
+                toolBar.leadingAnchor.constraint(equalTo: bottomMaskView.safeLeadingAnchor, constant: 10),
+                toolBar.trailingAnchor.constraint(equalTo: bottomMaskView.safeTrailingAnchor, constant: -15),
+                toolBar.timeSlider.bottomAnchor.constraint(equalTo: toolBar.topAnchor, constant: -8),
+                toolBar.timeSlider.leadingAnchor.constraint(equalTo: bottomMaskView.safeLeadingAnchor, constant: 15),
+                toolBar.timeSlider.trailingAnchor.constraint(equalTo: bottomMaskView.safeTrailingAnchor, constant: -15),
+                toolBar.timeSlider.heightAnchor.constraint(equalToConstant: 16),
+            ])
 
         #else
 
-        toolBar.playButton.tintColor = .white
-        toolBar.playbackRateButton.tintColor = .white
-        toolBar.definitionButton.tintColor = .white
-        toolBar.audioSwitchButton.tintColor = .white
-        toolBar.videoSwitchButton.tintColor = .white
-        toolBar.srtButton.tintColor = .white
-        toolBar.pipButton.tintColor = .white
+            toolBar.playButton.tintColor = .white
+            toolBar.playbackRateButton.tintColor = .white
+            toolBar.definitionButton.tintColor = .white
+            toolBar.audioSwitchButton.tintColor = .white
+            toolBar.videoSwitchButton.tintColor = .white
+            toolBar.srtButton.tintColor = .white
+            toolBar.pipButton.tintColor = .white
 
-        toolBar.spacing = 10
-        toolBar.addArrangedSubview(toolBar.playButton)
-        toolBar.addArrangedSubview(toolBar.timeLabel)
-        toolBar.addArrangedSubview(toolBar.playbackRateButton)
-        toolBar.addArrangedSubview(toolBar.definitionButton)
-        toolBar.addArrangedSubview(toolBar.audioSwitchButton)
-        toolBar.addArrangedSubview(toolBar.videoSwitchButton)
-        toolBar.addArrangedSubview(toolBar.srtButton)
-        toolBar.addArrangedSubview(toolBar.pipButton)
+            toolBar.spacing = 10
+            toolBar.addArrangedSubview(toolBar.playButton)
+            toolBar.addArrangedSubview(toolBar.timeLabel)
+            toolBar.addArrangedSubview(toolBar.playbackRateButton)
+            toolBar.addArrangedSubview(toolBar.definitionButton)
+            toolBar.addArrangedSubview(toolBar.audioSwitchButton)
+            toolBar.addArrangedSubview(toolBar.videoSwitchButton)
+            toolBar.addArrangedSubview(toolBar.srtButton)
+            toolBar.addArrangedSubview(toolBar.pipButton)
 
-        toolBar.setCustomSpacing(20, after: toolBar.timeLabel)
-        toolBar.setCustomSpacing(20, after: toolBar.playbackRateButton)
-        toolBar.setCustomSpacing(20, after: toolBar.definitionButton)
-        toolBar.setCustomSpacing(20, after: toolBar.srtButton)
+            toolBar.setCustomSpacing(20, after: toolBar.timeLabel)
+            toolBar.setCustomSpacing(20, after: toolBar.playbackRateButton)
+            toolBar.setCustomSpacing(20, after: toolBar.definitionButton)
+            toolBar.setCustomSpacing(20, after: toolBar.srtButton)
 
-        NSLayoutConstraint.activate([
-            toolBar.bottomAnchor.constraint(equalTo: bottomMaskView.safeBottomAnchor),
-            toolBar.leadingAnchor.constraint(equalTo: bottomMaskView.safeLeadingAnchor, constant: 10),
-            toolBar.trailingAnchor.constraint(equalTo: bottomMaskView.safeTrailingAnchor, constant: -15),
-            toolBar.timeSlider.bottomAnchor.constraint(equalTo: toolBar.topAnchor),
-            toolBar.timeSlider.leadingAnchor.constraint(equalTo: bottomMaskView.safeLeadingAnchor, constant: 15),
-            toolBar.timeSlider.trailingAnchor.constraint(equalTo: bottomMaskView.safeTrailingAnchor, constant: -15),
-            toolBar.timeSlider.heightAnchor.constraint(equalToConstant: 30),
-        ])
+            NSLayoutConstraint.activate([
+                toolBar.bottomAnchor.constraint(equalTo: bottomMaskView.safeBottomAnchor),
+                toolBar.leadingAnchor.constraint(equalTo: bottomMaskView.safeLeadingAnchor, constant: 10),
+                toolBar.trailingAnchor.constraint(equalTo: bottomMaskView.safeTrailingAnchor, constant: -15),
+                toolBar.timeSlider.bottomAnchor.constraint(equalTo: toolBar.topAnchor),
+                toolBar.timeSlider.leadingAnchor.constraint(equalTo: bottomMaskView.safeLeadingAnchor, constant: 15),
+                toolBar.timeSlider.trailingAnchor.constraint(equalTo: bottomMaskView.safeTrailingAnchor, constant: -15),
+                toolBar.timeSlider.heightAnchor.constraint(equalToConstant: 30),
+            ])
         #endif
     }
 
     private func preferredStyle() -> UIAlertController.Style {
         #if canImport(UIKit)
-        return UIDevice.current.userInterfaceIdiom == .phone ? .actionSheet : .alert
+            return UIDevice.current.userInterfaceIdiom == .phone ? .actionSheet : .alert
         #else
-        return .alert
+            return .alert
         #endif
     }
 
     #if canImport(UIKit)
-    private func addRemoteControllerGestures() {
-        let rightPressRecognizer = UITapGestureRecognizer()
-        rightPressRecognizer.addTarget(self, action: #selector(rightArrowButtonPressed(_:)))
-        rightPressRecognizer.allowedPressTypes = [NSNumber(value: UIPress.PressType.rightArrow.rawValue)]
-        addGestureRecognizer(rightPressRecognizer)
+        private func addRemoteControllerGestures() {
+            let rightPressRecognizer = UITapGestureRecognizer()
+            rightPressRecognizer.addTarget(self, action: #selector(rightArrowButtonPressed(_:)))
+            rightPressRecognizer.allowedPressTypes = [NSNumber(value: UIPress.PressType.rightArrow.rawValue)]
+            addGestureRecognizer(rightPressRecognizer)
 
-        let leftPressRecognizer = UITapGestureRecognizer()
-        leftPressRecognizer.addTarget(self, action: #selector(leftArrowButtonPressed(_:)))
-        leftPressRecognizer.allowedPressTypes = [NSNumber(value: UIPress.PressType.leftArrow.rawValue)]
-        addGestureRecognizer(leftPressRecognizer)
+            let leftPressRecognizer = UITapGestureRecognizer()
+            leftPressRecognizer.addTarget(self, action: #selector(leftArrowButtonPressed(_:)))
+            leftPressRecognizer.allowedPressTypes = [NSNumber(value: UIPress.PressType.leftArrow.rawValue)]
+            addGestureRecognizer(leftPressRecognizer)
 
-        let selectPressRecognizer = UITapGestureRecognizer()
-        selectPressRecognizer.addTarget(self, action: #selector(selectButtonPressed(_:)))
-        selectPressRecognizer.allowedPressTypes = [NSNumber(value: UIPress.PressType.select.rawValue)]
-        addGestureRecognizer(selectPressRecognizer)
+            let selectPressRecognizer = UITapGestureRecognizer()
+            selectPressRecognizer.addTarget(self, action: #selector(selectButtonPressed(_:)))
+            selectPressRecognizer.allowedPressTypes = [NSNumber(value: UIPress.PressType.select.rawValue)]
+            addGestureRecognizer(selectPressRecognizer)
 
-        let swipeUpRecognizer = UISwipeGestureRecognizer(target: self, action: #selector(swipedUp(_:)))
-        swipeUpRecognizer.direction = .up
-        addGestureRecognizer(swipeUpRecognizer)
+            let swipeUpRecognizer = UISwipeGestureRecognizer(target: self, action: #selector(swipedUp(_:)))
+            swipeUpRecognizer.direction = .up
+            addGestureRecognizer(swipeUpRecognizer)
 
-        let swipeDownRecognizer = UISwipeGestureRecognizer(target: self, action: #selector(swipedDown(_:)))
-        swipeDownRecognizer.direction = .down
-        addGestureRecognizer(swipeDownRecognizer)
-    }
-
-    @objc
-    private func rightArrowButtonPressed(_: UITapGestureRecognizer) {
-        guard let playerLayer, playerLayer.state.isPlaying, toolBar.isSeekable else { return }
-        seek(time: toolBar.currentTime + 15) { _ in }
-    }
-
-    @objc
-    private func leftArrowButtonPressed(_: UITapGestureRecognizer) {
-        guard let playerLayer, playerLayer.state.isPlaying, toolBar.isSeekable else { return }
-        seek(time: toolBar.currentTime - 15) { _ in }
-    }
-
-    @objc
-    private func selectButtonPressed(_: UITapGestureRecognizer) {
-        guard toolBar.isSeekable else { return }
-        if let playerLayer, playerLayer.state.isPlaying {
-            pause()
-        } else {
-            play()
+            let swipeDownRecognizer = UISwipeGestureRecognizer(target: self, action: #selector(swipedDown(_:)))
+            swipeDownRecognizer.direction = .down
+            addGestureRecognizer(swipeDownRecognizer)
         }
-    }
 
-    @objc
-    private func swipedUp(_: UISwipeGestureRecognizer) {
-        guard let playerLayer, playerLayer.state.isPlaying else { return }
-        if isMaskShow == false {
-            isMaskShow = true
+        @objc
+        private func rightArrowButtonPressed(_: UITapGestureRecognizer) {
+            guard let playerLayer, playerLayer.state.isPlaying, toolBar.isSeekable else { return }
+            seek(time: toolBar.currentTime + 15) { _ in }
         }
-    }
 
-    @objc
-    private func swipedDown(_: UISwipeGestureRecognizer) {
-        guard let playerLayer, playerLayer.state.isPlaying else { return }
-        if isMaskShow == true {
-            isMaskShow = false
+        @objc
+        private func leftArrowButtonPressed(_: UITapGestureRecognizer) {
+            guard let playerLayer, playerLayer.state.isPlaying, toolBar.isSeekable else { return }
+            seek(time: toolBar.currentTime - 15) { _ in }
         }
-    }
+
+        @objc
+        private func selectButtonPressed(_: UITapGestureRecognizer) {
+            guard toolBar.isSeekable else { return }
+            if let playerLayer, playerLayer.state.isPlaying {
+                pause()
+            } else {
+                play()
+            }
+        }
+
+        @objc
+        private func swipedUp(_: UISwipeGestureRecognizer) {
+            guard let playerLayer, playerLayer.state.isPlaying else { return }
+            if isMaskShow == false {
+                isMaskShow = true
+            }
+        }
+
+        @objc
+        private func swipedDown(_: UISwipeGestureRecognizer) {
+            guard let playerLayer, playerLayer.state.isPlaying else { return }
+            if isMaskShow == true {
+                isMaskShow = false
+            }
+        }
     #endif
 }
 
@@ -953,9 +961,9 @@ extension UIView {
 
     var readableTopAnchor: NSLayoutYAxisAnchor {
         #if os(macOS)
-        topAnchor
+            topAnchor
         #else
-        readableContentGuide.topAnchor
+            readableContentGuide.topAnchor
         #endif
     }
 
