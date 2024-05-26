@@ -294,6 +294,11 @@ class MetalView: UIView {
                 }
             #endif
         }
+
+        #if os(tvOS)
+
+        #endif
+
         guard let drawable = metalLayer.nextDrawable() else {
             KSLog("[video] CAMetalLayer not readyForMoreMediaData")
             return
