@@ -7,12 +7,12 @@
 
 import AVFoundation
 #if os(tvOS) || os(xrOS)
-import DisplayCriteria
+    import DisplayCriteria
 #endif
 import OSLog
 
 #if canImport(UIKit)
-import UIKit
+    import UIKit
 #endif
 open class KSOptions {
     /// 最低缓存视频时间
@@ -338,18 +338,21 @@ open class KSOptions {
     @MainActor
     open func updateVideo(refreshRate: Float, isDovi: Bool, formatDescription: CMFormatDescription?) {
         #if os(tvOS) || os(xrOS)
-        /**
-         快速更改preferredDisplayCriteria，会导致isDisplayModeSwitchInProgress变成true。
-         例如退出一个视频，然后在3s内重新进入的话。所以不判断isDisplayModeSwitchInProgress了
-         */
-        guard let displayManager = UIApplication.shared.windows.first?.avDisplayManager,
-              displayManager.isDisplayCriteriaMatchingEnabled
-        else {
-            return
-        }
-        if let dynamicRange = isDovi ? .dolbyVision : formatDescription?.dynamicRange {
-            displayManager.preferredDisplayCriteria = AVDisplayCriteria(refreshRate: refreshRate, videoDynamicRange: dynamicRange.rawValue)
-        }
+            guard
+                let displayManager = UIApplication.shared.windows.first?.avDisplayManager,
+                displayManager.isDisplayCriteriaMatchingEnabled
+            else { return }
+
+//        快速更改preferredDisplayCriteria，会导致isDisplayModeSwitchInProgress变成true，例如退出一个视频，然后在3s内重新进入的话，
+
+            if let formatDescription {
+                if KSOptions.displayCriteriaFormatDescriptionEnabled, #available(tvOS 17.0, *) {
+                    displayManager.preferredDisplayCriteria = AVDisplayCriteria(refreshRate: refreshRate, formatDescription: formatDescription)
+                } else {
+                    let dynamicRange = isDovi ? .hdr10 : formatDescription.dynamicRange // DV 影射到 hdr10 以暫時解決亮度問題，但是色彩偏暗
+                    displayManager.preferredDisplayCriteria = AVDisplayCriteria(refreshRate: refreshRate, videoDynamicRange: dynamicRange.rawValue)
+                }
+            }
         #endif
     }
 
@@ -399,32 +402,30 @@ open class KSOptions {
 
     open func availableDynamicRange(_ contentRange: DynamicRange?) -> DynamicRange? {
         #if canImport(UIKit)
-        let availableHDRModes = AVPlayer.availableHDRModes
-        if let preferedDynamicRange = destinationDynamicRange {
-            // value of 0 indicates that no HDR modes are supported.
-            if availableHDRModes == AVPlayer.HDRMode(rawValue: 0) {
-                return .sdr
-            } else if availableHDRModes.contains(preferedDynamicRange.hdrMode) {
-                return preferedDynamicRange
-            } else if let contentRange,
-                      availableHDRModes.contains(contentRange.hdrMode)
-            {
-                return contentRange
-            } else if preferedDynamicRange != .sdr { // trying update to HDR mode
-                return availableHDRModes.dynamicRange
+            let availableHDRModes = AVPlayer.availableHDRModes
+            if let preferedDynamicRange = destinationDynamicRange {
+                // value of 0 indicates that no HDR modes are supported.
+                if availableHDRModes == AVPlayer.HDRMode(rawValue: 0) {
+                    return .sdr
+                } else if availableHDRModes.contains(preferedDynamicRange.hdrMode) {
+                    return preferedDynamicRange
+                } else if let cotentRange, availableHDRModes.contains(cotentRange.hdrMode) {
+                    return cotentRange
+                } else if preferedDynamicRange != .sdr { // trying update to HDR mode
+                    return availableHDRModes.dynamicRange
+                }
             }
-        }
-        return contentRange
+            return cotentRange
         #else
-        return destinationDynamicRange ?? contentRange
+            return destinationDynamicRange ?? cotentRange
         #endif
     }
 
     open func playerLayerDeinit() {
         #if os(tvOS) || os(xrOS)
-        runOnMainThread {
-            UIApplication.shared.windows.first?.avDisplayManager.preferredDisplayCriteria = nil
-        }
+            runOnMainThread {
+                UIApplication.shared.windows.first?.avDisplayManager.preferredDisplayCriteria = nil
+            }
         #endif
     }
 
@@ -492,62 +493,59 @@ public extension KSOptions {
         #if os(macOS)
 //        try? AVAudioSession.sharedInstance().setRouteSharingPolicy(.longFormAudio)
         #else
-        var category = AVAudioSession.sharedInstance().category
-        if category != .playAndRecord {
-            category = .playback
-        }
-        #if os(tvOS)
-        try? AVAudioSession.sharedInstance().setCategory(category, mode: .moviePlayback, policy: .longFormAudio)
-        #else
-        try? AVAudioSession.sharedInstance().setCategory(category, mode: .moviePlayback, policy: .longFormVideo)
-        #endif
-        try? AVAudioSession.sharedInstance().setActive(true)
+            let category = AVAudioSession.sharedInstance().category
+            if category == .playback || category == .playAndRecord {
+                try? AVAudioSession.sharedInstance().setCategory(category, mode: .moviePlayback, policy: .longFormAudio)
+            } else {
+                try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback, policy: .longFormAudio)
+            }
+            try? AVAudioSession.sharedInstance().setActive(true)
         #endif
     }
 
     #if !os(macOS)
-    static func isSpatialAudioEnabled(channelCount _: AVAudioChannelCount) -> Bool {
-        if #available(tvOS 15.0, iOS 15.0, *) {
-            let isSpatialAudioEnabled = AVAudioSession.sharedInstance().currentRoute.outputs.contains { $0.isSpatialAudioEnabled }
-            try? AVAudioSession.sharedInstance().setSupportsMultichannelContent(isSpatialAudioEnabled)
-            return isSpatialAudioEnabled
-        } else {
-            return false
+        static func isSpatialAudioEnabled(channelCount _: AVAudioChannelCount) -> Bool {
+            if #available(tvOS 15.0, iOS 15.0, *) {
+                let isSpatialAudioEnabled = AVAudioSession.sharedInstance().currentRoute.outputs.contains { $0.isSpatialAudioEnabled }
+                try? AVAudioSession.sharedInstance().setSupportsMultichannelContent(isSpatialAudioEnabled)
+                return isSpatialAudioEnabled
+            } else {
+                return false
+            }
         }
-    }
 
-    static func outputNumberOfChannels(channelCount: AVAudioChannelCount) -> AVAudioChannelCount {
-        let maximumOutputNumberOfChannels = AVAudioChannelCount(AVAudioSession.sharedInstance().maximumOutputNumberOfChannels)
-        let preferredOutputNumberOfChannels = AVAudioChannelCount(AVAudioSession.sharedInstance().preferredOutputNumberOfChannels)
-        let isSpatialAudioEnabled = isSpatialAudioEnabled(channelCount: channelCount)
-        let isUseAudioRenderer = KSOptions.audioPlayerType == AudioRendererPlayer.self
-        KSLog("[audio] maximumOutputNumberOfChannels: \(maximumOutputNumberOfChannels), preferredOutputNumberOfChannels: \(preferredOutputNumberOfChannels), isSpatialAudioEnabled: \(isSpatialAudioEnabled), isUseAudioRenderer: \(isUseAudioRenderer) ")
-        let maxRouteChannelsCount = AVAudioSession.sharedInstance().currentRoute.outputs.compactMap {
-            $0.channels?.count
-        }.max() ?? 2
-        KSLog("[audio] currentRoute max channels: \(maxRouteChannelsCount)")
-        var channelCount = channelCount
-        if channelCount > 2 {
-            let minChannels = min(maximumOutputNumberOfChannels, channelCount)
-            #if os(tvOS) || targetEnvironment(simulator)
-            if !(isUseAudioRenderer && isSpatialAudioEnabled) {
-                // 不要用maxRouteChannelsCount来判断，有可能会不准。导致多音道设备也返回2（一开始播放一个2声道，就容易出现），也不能用outputNumberOfChannels来判断，有可能会返回2
+        static func outputNumberOfChannels(channelCount: AVAudioChannelCount) -> AVAudioChannelCount {
+            let maximumOutputNumberOfChannels = AVAudioChannelCount(AVAudioSession.sharedInstance().maximumOutputNumberOfChannels)
+            let preferredOutputNumberOfChannels = AVAudioChannelCount(AVAudioSession.sharedInstance().preferredOutputNumberOfChannels)
+            let isSpatialAudioEnabled = isSpatialAudioEnabled(channelCount: channelCount)
+            let isUseAudioRenderer = KSOptions.audioPlayerType == AudioRendererPlayer.self
+            KSLog("[audio] maximumOutputNumberOfChannels: \(maximumOutputNumberOfChannels), preferredOutputNumberOfChannels: \(preferredOutputNumberOfChannels), isSpatialAudioEnabled: \(isSpatialAudioEnabled), isUseAudioRenderer: \(isUseAudioRenderer) ")
+            let maxRouteChannelsCount = AVAudioSession.sharedInstance().currentRoute.outputs.compactMap {
+                $0.channels?.count
+            }.max() ?? 2
+            KSLog("[audio] currentRoute max channels: \(maxRouteChannelsCount)")
+            var channelCount = channelCount
+            if channelCount > 2 {
+                let minChannels = min(maximumOutputNumberOfChannels, channelCount)
+                #if os(tvOS) || targetEnvironment(simulator)
+                    if !(isUseAudioRenderer && isSpatialAudioEnabled) {
+                        // 不要用maxRouteChannelsCount来判断，有可能会不准。导致多音道设备也返回2（一开始播放一个2声道，就容易出现），也不能用outputNumberOfChannels来判断，有可能会返回2
 //                channelCount = AVAudioChannelCount(min(AVAudioSession.sharedInstance().outputNumberOfChannels, maxRouteChannelsCount))
-                channelCount = minChannels
+                        channelCount = minChannels
+                    }
+                #else
+                    // iOS 外放是会自动有空间音频功能，但是蓝牙耳机有可能没有空间音频功能或者把空间音频给关了，。所以还是需要处理。
+                    if !isSpatialAudioEnabled {
+                        channelCount = minChannels
+                    }
+                #endif
+            } else {
+                channelCount = 2
             }
-            #else
-            // iOS 外放是会自动有空间音频功能，但是蓝牙耳机有可能没有空间音频功能或者把空间音频给关了，。所以还是需要处理。
-            if !isSpatialAudioEnabled {
-                channelCount = minChannels
-            }
-            #endif
-        } else {
-            channelCount = 2
+            // 不在这里设置setPreferredOutputNumberOfChannels,因为这个方法会在获取音轨信息的时候，进行调用。
+            KSLog("[audio] outputNumberOfChannels: \(AVAudioSession.sharedInstance().outputNumberOfChannels) output channelCount: \(channelCount)")
+            return channelCount
         }
-        // 不在这里设置setPreferredOutputNumberOfChannels,因为这个方法会在获取音轨信息的时候，进行调用。
-        KSLog("[audio] outputNumberOfChannels: \(AVAudioSession.sharedInstance().outputNumberOfChannels) output channelCount: \(channelCount)")
-        return channelCount
-    }
     #endif
 }
 
