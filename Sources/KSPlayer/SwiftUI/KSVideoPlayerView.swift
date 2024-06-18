@@ -9,6 +9,7 @@ import MediaPlayer
 import SwiftUI
 
 @available(iOS 16.0, macOS 13.0, tvOS 16.0, *)
+@MainActor
 public struct KSVideoPlayerView: View {
     private let subtitleDataSouce: SubtitleDataSouce?
     @State
@@ -38,16 +39,20 @@ public struct KSVideoPlayerView: View {
         }
     }
 
-    public init(url: URL, options: KSOptions, title: String? = nil, subtitleDataSouce: SubtitleDataSouce? = nil) {
-        self.init(coordinator: KSVideoPlayer.Coordinator(), url: url, options: options, title: title, subtitleDataSouce: subtitleDataSouce)
+    public init(url: URL, options: KSOptions, title: String? = nil) {
+        self.init(coordinator: KSVideoPlayer.Coordinator(), url: url, options: options, title: title, subtitleDataSouce: nil)
     }
 
     public init(coordinator: KSVideoPlayer.Coordinator, url: URL, options: KSOptions, title: String? = nil, subtitleDataSouce: SubtitleDataSouce? = nil) {
-        _url = .init(initialValue: url)
+        self.init(coordinator: coordinator, url: .init(wrappedValue: url), options: options, title: .init(wrappedValue: title ?? url.lastPathComponent), subtitleDataSouce: subtitleDataSouce)
+    }
+
+    public init(coordinator: KSVideoPlayer.Coordinator, url: State<URL>, options: KSOptions, title: State<String>, subtitleDataSouce: SubtitleDataSouce?) {
+        _url = url
         _playerCoordinator = .init(wrappedValue: coordinator)
-        _title = .init(initialValue: title ?? url.lastPathComponent)
+        _title = title
         #if os(macOS)
-            NSDocumentController.shared.noteNewRecentDocumentURL(url)
+        NSDocumentController.shared.noteNewRecentDocumentURL(url.wrappedValue)
         #endif
         self.options = options
         self.subtitleDataSouce = subtitleDataSouce
@@ -301,6 +306,7 @@ public struct KSVideoPlayerView: View {
         runOnMainThread {
             if url.isAudio || url.isMovie {
                 self.url = url
+                title = url.lastPathComponent
             } else {
                 let info = URLSubtitleInfo(url: url)
                 playerCoordinator.subtitleModel.selectedSubtitleInfo = info
@@ -360,37 +366,42 @@ struct VideoControllerView: View {
     public var body: some View {
         VStack {
             #if os(tvOS)
+            Spacer()
+            HStack {
+                Text(title)
+                    .lineLimit(2)
+                    .layoutPriority(3)
+                ProgressView()
+                    .opacity(config.state == .buffering ? 1 : 0)
                 Spacer()
+                    .layoutPriority(2)
                 HStack {
-                    Text(title)
-                        .lineLimit(2)
-                        .layoutPriority(3)
-                    ProgressView()
-                        .opacity(config.state == .buffering ? 1 : 0)
-                    Spacer()
-                        .layoutPriority(2)
-                    HStack {
-                        Button {
-                            if config.state.isPlaying {
-                                config.playerLayer?.pause()
-                            } else {
-                                config.playerLayer?.play()
-                            }
-                        } label: {
-                            Image(systemName: config.state == .error ? "play.slash.fill" : (config.state.isPlaying ? "pause.circle.fill" : "play.circle.fill"))
+                    Button {
+                        if config.state.isPlaying {
+                            config.playerLayer?.pause()
+                        } else {
+                            config.playerLayer?.play()
                         }
-                        if let audioTracks = config.playerLayer?.player.tracks(mediaType: .audio), !audioTracks.isEmpty {
-                            audioButton(audioTracks: audioTracks)
-                        }
-                        // muteButton
-                        contentModeButton
-                        subtitleButton
-                        playbackRateButton
-                        // pipButton
-                        infoButton
+                    } label: {
+                        Image(systemName: config.state == .error ? "play.slash.fill" : (config.state.isPlaying ? "pause.circle.fill" : "play.circle.fill"))
                     }
-                    .font(.caption)
+                    .frame(width: 56)
+                    if let audioTracks = config.playerLayer?.player.tracks(mediaType: .audio), !audioTracks.isEmpty {
+                        audioButton(audioTracks: audioTracks)
+                    }
+                    muteButton
+                        .frame(width: 56)
+                    contentModeButton
+                        .frame(width: 56)
+                    subtitleButton
+                    playbackRateButton
+                    pipButton
+                        .frame(width: 56)
+                    infoButton
+                        .frame(width: 56)
                 }
+                .font(.caption)
+            }
             #else
                 HStack {
                     #if !os(xrOS)
@@ -534,6 +545,9 @@ public struct MenuView<Label, SelectionValue, Content>: View where Label: View, 
                 .pickerStyle(.navigationLink)
             #endif
                 .frame(height: 50)
+            #if os(tvOS)
+                .frame(width: 110)
+            #endif
         }
     }
 }
@@ -546,16 +560,14 @@ struct VideoTimeShowView: View {
     fileprivate var model: ControllerTimeModel
     fileprivate var timeFont: Font?
     public var body: some View {
-        if config.timemodel.totalTime == 0 {
-            Text("Live Streaming")
-        } else {
+        if config.playerLayer?.player.seekable ?? false {
             HStack {
                 Text(model.currentTime.toString(for: .minOrHour)).font(timeFont ?? .caption2.monospacedDigit())
                 Slider(value: Binding {
-                    Double(model.currentTime)
+                    Float(model.currentTime)
                 } set: { newValue, _ in
                     model.currentTime = Int(newValue)
-                }, in: 0 ... Double(model.totalTime)) { onEditingChanged in
+                }, in: 0 ... Float(model.totalTime)) { onEditingChanged in
                     if onEditingChanged {
                         config.playerLayer?.pause()
                     } else {
@@ -569,6 +581,8 @@ struct VideoTimeShowView: View {
                 Text((model.totalTime).toString(for: .minOrHour)).font(timeFont ?? .caption2.monospacedDigit())
             }
             .font(.system(.title2))
+        } else {
+            Text("Live Streaming")
         }
     }
 }
