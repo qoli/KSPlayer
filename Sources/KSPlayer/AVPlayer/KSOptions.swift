@@ -349,7 +349,7 @@ open class KSOptions {
                 if KSOptions.displayCriteriaFormatDescriptionEnabled, #available(tvOS 17.0, *) {
                     displayManager.preferredDisplayCriteria = AVDisplayCriteria(refreshRate: refreshRate, formatDescription: formatDescription)
                 } else {
-                    let dynamicRange = isDovi ? .hdr10 : formatDescription.dynamicRange // DV 影射到 hdr10 以暫時解決亮度問題，但是色彩偏暗
+                    let dynamicRange = isDovi ? .dolbyVision : formatDescription?.dynamicRange
                     displayManager.preferredDisplayCriteria = AVDisplayCriteria(refreshRate: refreshRate, videoDynamicRange: dynamicRange.rawValue)
                 }
             }
