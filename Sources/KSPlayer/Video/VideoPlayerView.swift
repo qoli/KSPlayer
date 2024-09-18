@@ -127,7 +127,7 @@ open class VideoPlayerView: PlayerView {
 
     override public init(frame: CGRect) {
         super.init(frame: frame)
-//        setupUIComponents() // 停用官方 UI
+//        setupUIComponents()
         miniUISetup()
         cancellable = playerLayer?.$isPipActive.assign(to: \.isSelected, on: toolBar.pipButton)
         toolBar.onFocusUpdate = { [weak self] _ in
