@@ -124,14 +124,7 @@ extension KSVideoPlayer: UIViewRepresentable {
             didSet {
                 if isMaskShow != oldValue {
                     if isMaskShow {
-                        delayItem?.cancel()
-                        // 播放的时候才自动隐藏
-                        guard state == .bufferFinished else { return }
-                        delayItem = DispatchWorkItem { [weak self] in
-                            self?.isMaskShow = false
-                        }
-                        DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + KSOptions.animateDelayTimeInterval,
-                                                      execute: delayItem!)
+                        //
                     }
                     #if os(macOS)
                         isMaskShow ? NSCursor.unhide() : NSCursor.setHiddenUntilMouseMoves(true)
