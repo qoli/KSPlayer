@@ -20,8 +20,6 @@ let package = Package(
             name: "KSPlayer",
             dependencies: [
                  .product(name: "FFmpegKit", package: "FFmpegKit"),
-//                .product(name: "Libass", package: "FFmpegKit"),
-//                .product(name: "Libmpv", package: "FFmpegKit"),
                 "DisplayCriteria",
             ],
             resources: [.process("Metal/Shaders.metal")],
