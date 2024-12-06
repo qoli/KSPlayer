@@ -113,7 +113,7 @@ open class KSOptions {
         formatContextOptions["reconnect_streamed"] = 1
         // 这个是用来开启http的链接复用（keep-alive）。vlc默认是打开的，所以这边也默认打开。
         // 开启这个，百度网盘的视频链接无法播放
-        // formatContextOptions["multiple_requests"] = 1
+//        formatContextOptions["multiple_requests"] = 1
         // 下面是用来处理秒开的参数，有需要的自己打开。默认不开，不然在播放某些特殊的ts直播流会频繁卡顿。
 //        formatContextOptions["auto_convert"] = 0
 //        formatContextOptions["fps_probe_size"] = 3
@@ -130,6 +130,10 @@ open class KSOptions {
 //        formatContextOptions["listen_timeout"] = 3
         decoderOptions["threads"] = "auto"
         decoderOptions["refcounted_frames"] = "1"
+    }
+
+    public func setFFOption(_ key: String, value: String) {
+        formatContextOptions[key] = value
     }
 
     /**
