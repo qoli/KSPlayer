@@ -117,7 +117,8 @@ open class KSOptions {
         // 下面是用来处理秒开的参数，有需要的自己打开。默认不开，不然在播放某些特殊的ts直播流会频繁卡顿。
 //        formatContextOptions["auto_convert"] = 0
 //        formatContextOptions["fps_probe_size"] = 3
-//        formatContextOptions["rw_timeout"] = 10_000_000
+        formatContextOptions["timeout"] = 30000000
+        formatContextOptions["rw_timeout"] = 30000000
 //        formatContextOptions["max_analyze_duration"] = 300 * 1000
         // 默认情况下允许所有协议，只有嵌套协议才需要指定这个协议子集，例如m3u8里面有http。
 //        formatContextOptions["protocol_whitelist"] = "file,http,https,tcp,tls,crypto,async,cache,data,httpproxy"
