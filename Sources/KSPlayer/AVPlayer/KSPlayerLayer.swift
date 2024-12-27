@@ -209,9 +209,9 @@ open class KSPlayerLayer: NSObject {
         self.isAutoPlay = isAutoPlay
         super.init()
         player.playbackRate = options.startPlayRate
-        if options.registerRemoteControll {
-            registerRemoteControllEvent()
-        }
+//        if options.registerRemoteControll {
+//            registerRemoteControllEvent()
+//        }
         player.delegate = self
         player.contentMode = .scaleAspectFit
         if isAutoPlay {
