@@ -85,27 +85,6 @@ public struct KSVideoPlayerView: View {
         .tint(.white)
         .persistentSystemOverlays(.hidden)
         .toolbar(.hidden, for: .automatic)
-        #if os(tvOS)
-            .onPlayPauseCommand {
-                if playerCoordinator.state.isPlaying {
-                    playerCoordinator.playerLayer?.pause()
-                } else {
-                    playerCoordinator.playerLayer?.play()
-                }
-            }
-            .onExitCommand {
-                if playerCoordinator.isMaskShow {
-                    playerCoordinator.isMaskShow = false
-                } else {
-                    switch focusableField {
-                    case .play:
-                        dismiss()
-                    default:
-                        focusableField = .play
-                    }
-                }
-            }
-        #endif
     }
 
     private var playView: some View {
@@ -131,13 +110,6 @@ public struct KSVideoPlayerView: View {
                 if let subtitleDataSouce {
                     playerCoordinator.subtitleModel.addSubtitle(dataSouce: subtitleDataSouce)
                 }
-                // 不要加这个，不然playerCoordinator无法释放，也可以在onDisappear调用removeMonitor释放
-                //                    #if os(macOS)
-                //                    NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved]) {
-                //                        isMaskShow = overView
-                //                        return $0
-                //                    }
-                //                    #endif
             }
 
         #if os(iOS) || os(xrOS)
