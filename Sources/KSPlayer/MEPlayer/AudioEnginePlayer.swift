@@ -212,9 +212,16 @@ public class AudioEnginePlayer: AudioOutput {
     public func play() {
         if !engine.isRunning {
             do {
+                // Check if the engine is prepared first
+                if !engine.isInManualRenderingMode {
+                    engine.prepare()
+                }
+                // Start the engine with proper error handling
                 try engine.start()
             } catch {
-                KSLog(error)
+                KSLog("[Audio Engine] Failed to start engine: \(error)")
+                // Optionally notify the delegate/handler about the failure
+                renderSource?.setAudio(time: .zero, position: 0)
             }
         }
     }
