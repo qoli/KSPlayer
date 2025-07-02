@@ -1,0 +1,15 @@
+{
+  "originHash" : "a5c390490fbe734c5bc6ef626da23dae5e21c1ee30bc9783952d4d0047b36c65",
+  "pins" : [
+    {
+      "identity" : "ffmpegkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/qoli/FFmpegKit",
+      "state" : {
+        "branch" : "main",
+        "revision" : "0e93ace8dcb3cb58745a2199cf27fd08d122267a"
+      }
+    }
+  ],
+  "version" : 3
+}

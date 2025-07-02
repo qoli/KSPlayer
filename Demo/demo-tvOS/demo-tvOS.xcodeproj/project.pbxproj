@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 60;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -16,6 +16,7 @@
 		AC78D5DC2B09057900A28998 /* test.m3u in Resources */ = {isa = PBXBuildFile; fileRef = AC78D5DB2B09057900A28998 /* test.m3u */; };
 		AC80333224BA1B54002B3D40 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AC80333124BA1B54002B3D40 /* Main.storyboard */; };
 		ACBBA9802A8503F400D262FC /* RootViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACBBA97F2A8503F400D262FC /* RootViewController.swift */; };
+		EABACADD2E1505D400B17945 /* KSPlayer in Frameworks */ = {isa = PBXBuildFile; productRef = EABACADC2E1505D400B17945 /* KSPlayer */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,6 +41,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4F8BF0EAD4FD485055852FBD /* Pods_demo_tvOS.framework in Frameworks */,
+				EABACADD2E1505D400B17945 /* KSPlayer in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -145,6 +147,9 @@
 				Base,
 			);
 			mainGroup = AC08610B20B69A1C00D801FC;
+			packageReferences = (
+				EA0C4F062E15056200F90670 /* XCLocalSwiftPackageReference "../../../KSPlayer" */,
+			);
 			productRefGroup = AC08611520B69A1C00D801FC /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -176,9 +181,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-demo-tvOS/Pods-demo-tvOS-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-demo-tvOS/Pods-demo-tvOS-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -347,7 +356,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1.1.1.1;
-				DEVELOPMENT_TEAM = 3RVHT92X9D;
+				DEVELOPMENT_TEAM = WQY45CL427;
 				INFOPLIST_FILE = "demo-tvOS/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -410,6 +419,21 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		EA0C4F062E15056200F90670 /* XCLocalSwiftPackageReference "../../../KSPlayer" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../../KSPlayer;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		EABACADC2E1505D400B17945 /* KSPlayer */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = EA0C4F062E15056200F90670 /* XCLocalSwiftPackageReference "../../../KSPlayer" */;
+			productName = KSPlayer;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = AC08610C20B69A1C00D801FC /* Project object */;
 }
