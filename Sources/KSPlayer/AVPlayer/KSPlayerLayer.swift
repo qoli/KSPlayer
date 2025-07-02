@@ -9,9 +9,9 @@ import AVFoundation
 import AVKit
 import MediaPlayer
 #if canImport(UIKit)
-import UIKit
+    import UIKit
 #else
-import AppKit
+    import AppKit
 #endif
 
 /**
@@ -79,7 +79,7 @@ open class KSPlayerLayer: NSObject {
                 }
 
                 if isPipActive {
-                    // 一定要async才不会pip之后就暂停播放
+                    // 一定要 async 才不会 pip 之后就暂停播放
                     DispatchQueue.main.async { [weak self] in
                         guard let self else { return }
                         pipController.start(view: self)
@@ -101,9 +101,9 @@ open class KSPlayerLayer: NSObject {
                 guard let self else { return }
                 if let oldView = oldValue.view, let superview = oldView.superview, let view = player.view {
                     #if canImport(UIKit)
-                    superview.insertSubview(view, belowSubview: oldView)
+                        superview.insertSubview(view, belowSubview: oldView)
                     #else
-                    superview.addSubview(view, positioned: .below, relativeTo: oldView)
+                        superview.addSubview(view, positioned: .below, relativeTo: oldView)
                     #endif
                     view.translatesAutoresizingMaskIntoConstraints = false
                     NSLayoutConstraint.activate([
@@ -129,10 +129,10 @@ open class KSPlayerLayer: NSObject {
         didSet {
             let firstPlayerType: MediaPlayerProtocol.Type
             if isWirelessRouteActive {
-                // airplay的话，默认使用KSAVPlayer
+                // airplay 的话，默认使用 KSAVPlayer
                 firstPlayerType = KSAVPlayer.self
             } else if options.display != .plane {
-                // AR模式只能用KSMEPlayer
+                // AR 模式只能用 KSMEPlayer
                 // swiftlint:disable force_cast
                 firstPlayerType = NSClassFromString("KSPlayer.KSMEPlayer") as! MediaPlayerProtocol.Type
                 // swiftlint:enable force_cast
@@ -198,7 +198,7 @@ open class KSPlayerLayer: NSObject {
         self.delegate = delegate
         let firstPlayerType: MediaPlayerProtocol.Type
         if options.display != .plane {
-            // AR模式只能用KSMEPlayer
+            // AR 模式只能用 KSMEPlayer
             // swiftlint:disable force_cast
             firstPlayerType = NSClassFromString("KSPlayer.KSMEPlayer") as! MediaPlayerProtocol.Type
             // swiftlint:enable force_cast
@@ -218,17 +218,17 @@ open class KSPlayerLayer: NSObject {
             prepareToPlay()
         }
         #if canImport(UIKit)
-        runOnMainThread { [weak self] in
-            guard let self else { return }
-            NotificationCenter.default.addObserver(self, selector: #selector(enterBackground), name: UIApplication.didEnterBackgroundNotification, object: nil)
-            NotificationCenter.default.addObserver(self, selector: #selector(enterForeground), name: UIApplication.willEnterForegroundNotification, object: nil)
-        }
-        #if !os(xrOS)
-        NotificationCenter.default.addObserver(self, selector: #selector(wirelessRouteActiveDidChange(notification:)), name: .MPVolumeViewWirelessRouteActiveDidChange, object: nil)
-        #endif
+            runOnMainThread { [weak self] in
+                guard let self else { return }
+                NotificationCenter.default.addObserver(self, selector: #selector(enterBackground), name: UIApplication.didEnterBackgroundNotification, object: nil)
+                NotificationCenter.default.addObserver(self, selector: #selector(enterForeground), name: UIApplication.willEnterForegroundNotification, object: nil)
+            }
+            #if !os(xrOS)
+                NotificationCenter.default.addObserver(self, selector: #selector(wirelessRouteActiveDidChange(notification:)), name: .MPVolumeViewWirelessRouteActiveDidChange, object: nil)
+            #endif
         #endif
         #if !os(macOS)
-        NotificationCenter.default.addObserver(self, selector: #selector(audioInterrupted), name: AVAudioSession.interruptionNotification, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(audioInterrupted), name: AVAudioSession.interruptionNotification, object: nil)
         #endif
     }
 
@@ -332,8 +332,9 @@ open class KSPlayerLayer: NSObject {
     open func seek(time: TimeInterval, autoPlay: Bool, completion: @escaping ((Bool) -> Void)) {
         if time.isInfinite || time.isNaN {
             completion(false)
+            return
         }
-        if player.isReadyToPlay, player.seekable {
+        if player.isReadyToPlay {
             player.seek(time: time) { [weak self] finished in
                 guard let self else { return }
                 if finished, autoPlay {
@@ -355,28 +356,28 @@ extension KSPlayerLayer: MediaPlayerDelegate {
     public func readyToPlay(player: some MediaPlayerProtocol) {
         state = .readyToPlay
         #if os(macOS)
-        runOnMainThread { [weak self] in
-            guard let self else { return }
-            if let window = player.view?.window {
-                window.isMovableByWindowBackground = true
-                if options.automaticWindowResize {
-                    let naturalSize = player.naturalSize
-                    if naturalSize.width > 0, naturalSize.height > 0 {
-                        window.aspectRatio = naturalSize
-                        var frame = window.frame
-                        frame.size.height = frame.width * naturalSize.height / naturalSize.width
-                        window.setFrame(frame, display: true)
+            runOnMainThread { [weak self] in
+                guard let self else { return }
+                if let window = player.view?.window {
+                    window.isMovableByWindowBackground = true
+                    if options.automaticWindowResize {
+                        let naturalSize = player.naturalSize
+                        if naturalSize.width > 0, naturalSize.height > 0 {
+                            window.aspectRatio = naturalSize
+                            var frame = window.frame
+                            frame.size.height = frame.width * naturalSize.height / naturalSize.width
+                            window.setFrame(frame, display: true)
+                        }
                     }
                 }
             }
-        }
         #endif
         #if !os(macOS) && !os(tvOS)
-        if #available(iOS 14.2, *) {
-            if options.canStartPictureInPictureAutomaticallyFromInline {
-                player.pipController?.canStartPictureInPictureAutomaticallyFromInline = true
+            if #available(iOS 14.2, *) {
+                if options.canStartPictureInPictureAutomaticallyFromInline {
+                    player.pipController?.canStartPictureInPictureAutomaticallyFromInline = true
+                }
             }
-        }
         #endif
         updateNowPlayingInfo()
         if isAutoPlay {
@@ -666,42 +667,42 @@ extension KSPlayerLayer {
     }
 
     #if canImport(UIKit) && !os(xrOS)
-    @MainActor
-    @objc private func wirelessRouteActiveDidChange(notification: Notification) {
-        guard let volumeView = notification.object as? MPVolumeView, isWirelessRouteActive != volumeView.isWirelessRouteActive else { return }
-        if volumeView.isWirelessRouteActive {
-            if !player.allowsExternalPlayback {
-                isWirelessRouteActive = true
+        @MainActor
+        @objc private func wirelessRouteActiveDidChange(notification: Notification) {
+            guard let volumeView = notification.object as? MPVolumeView, isWirelessRouteActive != volumeView.isWirelessRouteActive else { return }
+            if volumeView.isWirelessRouteActive {
+                if !player.allowsExternalPlayback {
+                    isWirelessRouteActive = true
+                }
+                player.usesExternalPlaybackWhileExternalScreenIsActive = true
             }
-            player.usesExternalPlaybackWhileExternalScreenIsActive = true
+            isWirelessRouteActive = volumeView.isWirelessRouteActive
         }
-        isWirelessRouteActive = volumeView.isWirelessRouteActive
-    }
     #endif
     #if !os(macOS)
-    @objc private func audioInterrupted(notification: Notification) {
-        guard let userInfo = notification.userInfo,
-              let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
-              let type = AVAudioSession.InterruptionType(rawValue: typeValue)
-        else {
-            return
-        }
-        switch type {
-        case .began:
-            pause()
-
-        case .ended:
-            // An interruption ended. Resume playback, if appropriate.
-
-            guard let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt else { return }
-            let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
-            if options.contains(.shouldResume) {
-                play()
+        @objc private func audioInterrupted(notification: Notification) {
+            guard let userInfo = notification.userInfo,
+                  let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
+                  let type = AVAudioSession.InterruptionType(rawValue: typeValue)
+            else {
+                return
             }
+            switch type {
+            case .began:
+                pause()
 
-        default:
-            break
+            case .ended:
+                // An interruption ended. Resume playback, if appropriate.
+
+                guard let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt else { return }
+                let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
+                if options.contains(.shouldResume) {
+                    play()
+                }
+
+            default:
+                break
+            }
         }
-    }
     #endif
 }
