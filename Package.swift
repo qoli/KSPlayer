@@ -61,6 +61,6 @@ let package = Package(
      ]
  } else {
      package.dependencies += [
-         .package(url: "https://github.com/qoli/FFmpegKit", .branch("main"))
+         .package(url: "https://github.com/qoli/FFmpegKit", branch: "main")
      ]
  }
